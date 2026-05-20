@@ -1,4 +1,4 @@
-package org.gulash.demo.reentrantlock;
+package org.gulash.demo.reentrantlock.demo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +24,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * где в блоке {@code finally} вызывается {@code unlock()}. Если этого не сделать, блокировка никогда
  * не будет освобождена в случае исключения, что приведет к Deadlock всего приложения.</p>
  *
- * <pre>{@code
- * BasicLockDemo demo = new BasicLockDemo();
- * demo.performSafeAction();
- * }</pre>
- *
  * @see ReentrantLock
  */
 public class BasicLockDemo {
@@ -49,21 +44,56 @@ public class BasicLockDemo {
      */
     public void performSafeAction() {
         log.info("Попытка захвата блокировки...");
-        lock.lock(); // Поток засыпает здесь, если замок занят другим потоком
+        lock.lock(); // Поток засыпает здесь, если замок занят. Interrupt игнорируется до захвата.
         try {
             log.info("Блокировка захвачена. Выполнение критической секции.");
             counter++;
-            // Имитация полезной нагрузки
+            // Имитация полезной нагрузки. Здесь InterruptedException МОЖЕТ быть выброшен.
             Thread.sleep(100);
             log.info("Текущее значение счетчика: {}", counter);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Поток был прерван", e);
+            log.error("Поток был прерван во время работы внутри секции", e);
         } finally {
             // Обязательное освобождение замка
             lock.unlock();
             log.info("Блокировка освобождена.");
         }
+    }
+
+    /**
+     * Пример использования lockInterruptibly().
+     * В отличие от lock(), этот метод выбросит InterruptedException, если поток
+     * будет прерван ВО ВРЕМЯ ожидания захвата блокировки.
+     */
+    public void performInterruptibleAction() {
+        log.info("Попытка прерываемого захвата блокировки...");
+        try {
+            // Если другой поток прервет текущий ПОКА тот ждет замок, 
+            // метод сразу выбросит InterruptedException.
+            lock.lockInterruptibly();
+            try {
+                log.info("Блокировка захвачена (прерываемо).");
+                counter++;
+                Thread.sleep(100);
+            } finally {
+                lock.unlock();
+                log.info("Блокировка освобождена.");
+            }
+        } catch (InterruptedException e) {
+            log.error("Поток был прерван во время ожидания или работы", e);
+            // Восстанавливаем статус прерывания
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public void manualLock() {
+        log.info("Блокировка установлена в ручную.");
+        lock.lock();
+    }
+    public void manualUnlock() {
+        log.info("Блокировка снята в ручную.");
+        lock.unlock();
     }
 
     /**

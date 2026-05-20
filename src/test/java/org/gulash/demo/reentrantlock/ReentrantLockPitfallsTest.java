@@ -51,6 +51,61 @@ class ReentrantLockPitfallsTest {
     }
 
     @Test
+    @DisplayName("Сравнение lock() и lockInterruptibly(): lock() игнорирует прерывание во время ожидания")
+    void testLockVsLockInterruptibly() throws InterruptedException {
+        ReentrantLock lock = new ReentrantLock();
+        lock.lock(); // Главный поток держит замок
+
+        // 1. Тестируем lock()
+        AtomicBoolean lockFinished = new AtomicBoolean(false);
+        Thread lockThread = new Thread(() -> {
+            log.info("lockThread: вызываю lock()...");
+            lock.lock();
+            try {
+                log.info("lockThread: замок захвачен");
+                lockFinished.set(true);
+            } finally {
+                lock.unlock();
+            }
+        });
+        lockThread.start();
+        Thread.sleep(100);
+        log.info("Главный поток: прерываю lockThread");
+        lockThread.interrupt();
+        Thread.sleep(100);
+        assertFalse(lockFinished.get(), "lockThread не должен был захватить замок, пока он занят");
+        assertTrue(lockThread.isAlive(), "lockThread должен все еще висеть (ждать замок), несмотря на interrupt()");
+
+        // 2. Освобождаем замок, чтобы lockThread мог завершиться
+        lock.unlock();
+        lockThread.join(1000);
+        assertTrue(lockFinished.get(), "lockThread должен был захватить замок после освобождения");
+        assertTrue(lockThread.isInterrupted(), "Флаг прерывания должен быть установлен у lockThread");
+
+        // 3. Тестируем lockInterruptibly()
+        lock.lock(); // Снова захватываем
+        AtomicBoolean interruptedCaught = new AtomicBoolean(false);
+        Thread interruptibleThread = new Thread(() -> {
+            try {
+                log.info("interruptibleThread: вызываю lockInterruptibly()...");
+                lock.lockInterruptibly();
+                lock.unlock();
+            } catch (InterruptedException e) {
+                log.info("interruptibleThread: поймал InterruptedException!");
+                interruptedCaught.set(true);
+            }
+        });
+        interruptibleThread.start();
+        Thread.sleep(100);
+        log.info("Главный поток: прерываю interruptibleThread");
+        interruptibleThread.interrupt();
+        interruptibleThread.join(1000);
+
+        assertTrue(interruptedCaught.get(), "interruptibleThread должен был выбросить InterruptedException");
+        lock.unlock();
+    }
+
+    @Test
     @DisplayName("Подводный камень: IllegalMonitorStateException при unlock() без владения замком")
     void testUnlockWithoutLock() {
         ReentrantLock lock = new ReentrantLock();

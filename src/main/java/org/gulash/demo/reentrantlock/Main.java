@@ -1,5 +1,6 @@
 package org.gulash.demo.reentrantlock;
 
+import org.gulash.demo.reentrantlock.demo.BasicLockDemo;
 import org.gulash.demo.reentrantlock.demo.TryLockDemo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,16 @@ public class Main {
         // 1. Базовый пример
         log.info("--- 1. Базовый пример ---");
         BasicLockDemo basic = new BasicLockDemo();
-        basic.performSafeAction();
+        Thread basicLockThread = new Thread(basic::performSafeAction);
+
+        basic.manualLock();
+        //--
+        basicLockThread.start();
+        //--
+        Thread.sleep(100);
+        basic.manualUnlock();
+
+        basicLockThread.join();
 
         // 2. TryLock
         log.info("--- 2. TryLock пример ---");
