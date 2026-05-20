@@ -44,7 +44,38 @@ public class Main {
         advanced.outerMethod();
         advanced.showLockStatus();
 
+        // 4. Condition
+        log.info("--- 4. Condition пример (Producer-Consumer) ---");
+        ConditionDemo sharedBuffer = new ConditionDemo(2);
+
+        Thread producer = new Thread(() -> {
+            try {
+                for (int i = 1; i <= 5; i++) {
+                    sharedBuffer.produce("Item-" + i);
+                    Thread.sleep(100);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "Producer");
+
+        Thread consumer = new Thread(() -> {
+            try {
+                for (int i = 1; i <= 5; i++) {
+                    sharedBuffer.consume();
+                    Thread.sleep(300); // Потребитель медленнее
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "Consumer");
+
+        producer.start();
+        consumer.start();
+
+        producer.join();
+        consumer.join();
+
         log.info("Демонстрация завершена. См. тесты для более глубокого погружения.");
     }
-
 }
