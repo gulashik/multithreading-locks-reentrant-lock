@@ -1,4 +1,4 @@
-package org.gulash.demo.reentrantlock;
+package org.gulash.demo.reentrantlock.demo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +20,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * Каждый раз при {@code unlock()} — уменьшается. 
  * Замок освобождается для других потоков только когда счетчик станет равен 0.
  *
- * <pre>{@code
- * AdvancedFeaturesDemo demo = new AdvancedFeaturesDemo();
- * demo.outerMethod();
- * }</pre>
  */
 public class AdvancedFeaturesDemo {
     private static final Logger log = LoggerFactory.getLogger(AdvancedFeaturesDemo.class);

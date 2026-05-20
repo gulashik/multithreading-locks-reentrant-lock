@@ -1,5 +1,6 @@
 package org.gulash.demo.reentrantlock;
 
+import org.gulash.demo.reentrantlock.demo.AdvancedFeaturesDemo;
 import org.gulash.demo.reentrantlock.demo.BasicLockDemo;
 import org.gulash.demo.reentrantlock.demo.TryLockDemo;
 import org.slf4j.Logger;
