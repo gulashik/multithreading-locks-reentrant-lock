@@ -1,4 +1,4 @@
-package org.gulash.demo.reentrantlock;
+package org.gulash.demo.reentrantlock.demo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,10 +27,18 @@ import java.util.concurrent.locks.ReentrantLock;
  *     <li>Метод {@code await()} автоматически освобождает замок и заново захватывает его при пробуждении.</li>
  * </ul>
  *
- * <pre>{@code
- * ConditionDemo sharedQueue = new ConditionDemo(5);
- * // Один поток вызывает produce(), другой consume()
- * }</pre>
+ * <p><b>signal() vs signalAll():</b></p>
+ * <ul>
+ *     <li>{@code signal()} — пробуждает только один поток. Эффективнее, если все ожидающие потоки
+ *     равнозначны (ждут одного и того же) и выполнение одного из них позволит продвинуться остальным.
+ *     В данном примере используется {@code signal()}, так как у нас раздельные условия {@code notFull}
+ *     и {@code notEmpty}.</li>
+ *     <li>{@code signalAll()} — пробуждает все ожидающие потоки. Безопаснее, если в очереди могут быть
+ *     потоки с разными условиями ожидания (или если вы используете один {@code Condition} для разных целей),
+ *     чтобы избежать ситуации "упущенного сигнала", когда проснувшийся поток не смог продолжить работу
+ *     и снова уснул, не передав сигнал другому.</li>
+ * </ul>
+ *
  */
 public class ConditionDemo {
     private static final Logger log = LoggerFactory.getLogger(ConditionDemo.class);
@@ -64,7 +72,7 @@ public class ConditionDemo {
             log.info("Произведено: {}. Элементов в буфере: {}", x, count);
 
             // Сигнализируем потребителям, что данные появились
-            notEmpty.signal();
+            notEmpty.signalAll();
         } finally {
             lock.unlock();
         }
@@ -86,7 +94,7 @@ public class ConditionDemo {
             log.info("Потреблено: {}. Элементов в буфере: {}", x, count);
 
             // Сигнализируем производителям, что место освободилось
-            notFull.signal();
+            notFull.signalAll();
             return x;
         } finally {
             lock.unlock();

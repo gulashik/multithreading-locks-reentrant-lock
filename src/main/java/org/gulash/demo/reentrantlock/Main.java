@@ -2,6 +2,7 @@ package org.gulash.demo.reentrantlock;
 
 import org.gulash.demo.reentrantlock.demo.AdvancedFeaturesDemo;
 import org.gulash.demo.reentrantlock.demo.BasicLockDemo;
+import org.gulash.demo.reentrantlock.demo.ConditionDemo;
 import org.gulash.demo.reentrantlock.demo.TryLockDemo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,7 @@ public class Main {
             try {
                 for (int i = 1; i <= 5; i++) {
                     sharedBuffer.produce("Item-" + i);
-                    Thread.sleep(100);
+                    Thread.sleep(50);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
