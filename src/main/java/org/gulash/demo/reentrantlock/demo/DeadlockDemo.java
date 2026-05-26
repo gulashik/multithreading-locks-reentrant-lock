@@ -11,10 +11,15 @@ import java.util.concurrent.locks.ReentrantLock;
 public class DeadlockDemo {
     private static final Logger log = LoggerFactory.getLogger(DeadlockDemo.class);
 
-
     public static void main(String[] args) throws InterruptedException {
-        final Friend personA = new Friend("Max");
-        final Friend personB = new Friend("Olga");
+        // Lock храниться локально в каждом
+//        final FriendSelfLock personA = new FriendSelfLock("Max");
+//        final FriendSelfLock personB = new FriendSelfLock("Olga");
+
+        // Если сами делаем lock
+        final ReentrantLock lock = new ReentrantLock();
+        final Friend personA = new Friend("Max", lock);
+        final Friend personB = new Friend("Olga", lock);
 
         final Thread threadA = new Thread(() -> {
             log.info("{} work started", Thread.currentThread().getName());
@@ -33,17 +38,15 @@ public class DeadlockDemo {
         threadA.join();
         threadB.join();
     }
-
-
 }
 
-class Friend {
+class FriendSelfLock {
     private static final Logger log = LoggerFactory.getLogger(Friend.class);
 
     private final ReentrantLock lock = new ReentrantLock();
     private final String name;
 
-    public Friend(String name) {
+    public FriendSelfLock(String name) {
         this.name = name;
     }
 
@@ -51,7 +54,7 @@ class Friend {
         return this.name;
     }
 
-    public void bow(Friend bower) {
+    public void bow(FriendSelfLock bower) {
         while (true) {
             boolean lockAcquiredThis = false;
             boolean lockAcquiredOther = false;
@@ -76,6 +79,57 @@ class Friend {
             } finally {
                 if (lockAcquiredOther) bower.lock.unlock();
                 if (lockAcquiredThis) this.lock.unlock();
+            }
+        }
+    }
+
+    public void bowBack(FriendSelfLock bower) {
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(1, 100));
+            log.info("{}: {} has bowed back to me!", this.name, bower.getName());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+class Friend {
+    private static final Logger log = LoggerFactory.getLogger(Friend.class);
+
+    private final ReentrantLock lock;
+    private final String name;
+
+    public Friend(String name, ReentrantLock lock) {
+        this.name = name;
+        this.lock = lock;
+    }
+
+    public String getName() {
+        return this.name;
+    }
+
+    public void bow(Friend bower) {
+        while (true) {
+            boolean lockAcquired = false;
+            try {
+                log.info("{} is waiting for locks", this.name);
+                lockAcquired = this.lock.tryLock(ThreadLocalRandom.current().nextInt(1, 50), TimeUnit.MILLISECONDS);
+
+                if (lockAcquired) {
+                    log.info("Locks acquired by {}", this.name);
+                    log.info("{}: {} has bowed to me!", this.name, bower.getName());
+                    bower.bowBack(this);
+                    return; // Exit the loop
+                } else {
+                    log.warn("Could not acquire both locks for {}, retrying...", this.name);
+                }
+
+            } catch (InterruptedException e) {
+                log.info("Interrupted while waiting for locks");
+                Thread.currentThread().interrupt();
+                return; // Exit the loop
+            } finally {
+                if (lockAcquired) bower.lock.unlock();
             }
         }
     }
