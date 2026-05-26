@@ -8,9 +8,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
+/**
+ * Демонстрация предотвращения взаимной блокировки (deadlock) с использованием {@link ReentrantLock#tryLock()}.
+ * <p>
+ * В классическом примере с "кланяющимися друзьями" deadlock возникает, если два потока
+ * одновременно пытаются захватить мониторы друг друга. Использование tryLock с таймаутом
+ * позволяет избежать вечного ожидания, отпуская уже захваченные замки при неудаче.
+ */
 public class DeadlockDemo {
     private static final Logger log = LoggerFactory.getLogger(DeadlockDemo.class);
 
+    /**
+     * Точка входа в демонстрацию.
+     * Создает двух "друзей" и запускает два потока, имитирующих их взаимодействие.
+     */
     public static void main(String[] args) throws InterruptedException {
         // Lock храниться локально в каждом
 //        final FriendSelfLock personA = new FriendSelfLock("Max");
@@ -40,6 +51,10 @@ public class DeadlockDemo {
     }
 }
 
+/**
+ * Класс, где каждый объект имеет свой собственный замок.
+ * Используется для демонстрации захвата нескольких замков.
+ */
 class FriendSelfLock {
     private static final Logger log = LoggerFactory.getLogger(Friend.class);
 
@@ -54,6 +69,13 @@ class FriendSelfLock {
         return this.name;
     }
 
+    /**
+     * Выполняет "поклон" другому другу.
+     * Пытается захватить как свой замок, так и замок оппонента.
+     * Если не удается захватить оба, освобождает захваченные и пробует снова.
+     *
+     * @param bower Друг, которому кланяемся.
+     */
     public void bow(FriendSelfLock bower) {
         while (true) {
             boolean lockAcquiredThis = false;
@@ -83,6 +105,11 @@ class FriendSelfLock {
         }
     }
 
+    /**
+     * Ответный поклон. Вызывается внутри bow под защитой замков.
+     *
+     * @param bower Друг, который кланяется в ответ.
+     */
     public void bowBack(FriendSelfLock bower) {
         try {
             Thread.sleep(ThreadLocalRandom.current().nextInt(1, 100));
@@ -93,9 +120,12 @@ class FriendSelfLock {
     }
 }
 
+/**
+ * Класс, использующий внешний (общий) замок.
+ */
 class Friend {
     private static final Logger log = LoggerFactory.getLogger(Friend.class);
-
+    /** Общий замок*/
     private final ReentrantLock lock;
     private final String name;
 
@@ -108,6 +138,11 @@ class Friend {
         return this.name;
     }
 
+    /**
+     * Выполняет поклон под защитой общего замка.
+     *
+     * @param bower Друг, которому кланяемся.
+     */
     public void bow(Friend bower) {
         while (true) {
             boolean lockAcquired = false;
@@ -134,6 +169,11 @@ class Friend {
         }
     }
 
+    /**
+     * Ответный поклон под общим замком.
+     *
+     * @param bower Друг, который кланяется в ответ.
+     */
     public void bowBack(Friend bower) {
         try {
             Thread.sleep(ThreadLocalRandom.current().nextInt(1, 100));
