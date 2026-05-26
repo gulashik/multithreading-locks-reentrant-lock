@@ -148,7 +148,7 @@ class Friend {
             boolean lockAcquired = false;
             try {
                 log.info("{} is waiting for locks", this.name);
-                lockAcquired = this.lock.tryLock(ThreadLocalRandom.current().nextInt(1, 50), TimeUnit.MILLISECONDS);
+                lockAcquired = lock.tryLock(ThreadLocalRandom.current().nextInt(1, 50), TimeUnit.MILLISECONDS);
 
                 if (lockAcquired) {
                     log.info("Locks acquired by {}", this.name);
@@ -164,7 +164,7 @@ class Friend {
                 Thread.currentThread().interrupt();
                 return; // Exit the loop
             } finally {
-                if (lockAcquired) bower.lock.unlock();
+                if (lockAcquired) lock.unlock();
             }
         }
     }
